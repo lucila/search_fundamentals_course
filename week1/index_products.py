@@ -80,18 +80,53 @@ mappings =  [
 
         ]
 
+def create_index(index_name):
+    client = get_opensearch()
+    try:
+        print(client.cat.count("search_fun_test", params={"v": "true"}))
+        print(f"index already exists {index_name}. return!")
+        return
+    except:
+        print("creating index: " + index_name)
+        index_body = {
+            'settings': {
+                'index': {
+                    'query':{
+                        'default_field': "body"
+                    }
+                }
+            }
+        }
+        response = client.indices.create(index_name, body=index_body)
+        print('\nCreating index:')
+        print(response)
+
 def get_opensearch():
     host = 'localhost'
     port = 9200
     auth = ('admin', 'admin')
     #### Step 2.a: Create a connection to OpenSearch
-    client = None
+    #### DONE!
+    # Create the client with SSL/TLS enabled, but hostname and certificate verification disabled.
+    client = OpenSearch(
+        hosts=[{'host': host, 'port': port}],
+        http_compress=True,  # enables gzip compression for request bodies
+        http_auth=auth,
+        # client_cert = client_cert_path,
+        # client_key = client_key_path,
+        use_ssl=True,
+        verify_certs=False,
+        ssl_assert_hostname=False,
+        ssl_show_warn=False,
+    )
     return client
 
 
 def index_file(file, index_name):
     docs_indexed = 0
     client = get_opensearch()
+    #count before the indexing:
+    print(client.cat.count(index_name, params={"v": "true"}))
     logger.info(f'Processing file : {file}')
     tree = etree.parse(file)
     root = tree.getroot()
@@ -103,13 +138,22 @@ def index_file(file, index_name):
             xpath_expr = mappings[idx]
             key = mappings[idx + 1]
             doc[key] = child.xpath(xpath_expr)
-        #print(doc)
+        
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-        the_doc = None
-        docs.append(the_doc)
+        doc['id'] = doc['sku']
+        #docs.append(doc)
+        
+        response = client.index(
+            index=index_name,
+            body=doc,
+            id=doc['sku'],
+            refresh=True
+        )
 
+        #count before the indexing:
+        print(client.cat.count(index_name, params={"v": "true"}))
     return docs_indexed
 
 @click.command()
