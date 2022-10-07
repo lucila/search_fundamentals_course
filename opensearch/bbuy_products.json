@@ -26,7 +26,7 @@
         }
       },
       "bestBuyItemId" : {
-        "type" : "integer"
+        "type" : "keyword"
       },
       "bestSellingRank" : {
         "type" : "long"
@@ -71,7 +71,7 @@
         }
       },
       "classId" : {
-        "type" : "float"
+        "type" : "keyword"
       },
       "color" : {
         "type" : "text",
@@ -107,7 +107,7 @@
         }
       },
       "departmentId" : {
-        "type" : "integer"
+        "type" : "keyword"
       },
       "depth" : {
         "type" : "text",
@@ -161,7 +161,7 @@
         "type" : "boolean"
       },
       "id" : {
-        "type" : "long"
+        "type" : "keyword"
       },
       "image" : {
         "type" : "text",
@@ -180,12 +180,7 @@
       },
       "longDescription" : {
         "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 500
-          }
-        }
+        "analyzer": "english"
       },
       "longDescriptionHtml" : {
         "type" : "text",
@@ -197,31 +192,14 @@
         }
       },
       "manufacturer" : {
-        "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "type" : "keyword"
       },
       "modelNumber" : {
-        "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "type" : "keyword"
       },
       "name" : {
         "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "analyzer": "english"
       },
       "onSale" : {
         "type" : "boolean"
@@ -230,7 +208,7 @@
         "type" : "boolean"
       },
       "productId" : {
-        "type" : "long"
+        "type" : "keyword"
       },
       "quantityLimit" : {
         "type" : "integer"
@@ -270,12 +248,7 @@
       },
       "shortDescription" : {
         "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "analyzer": "english"
       },
       "shortDescriptionHtml" : {
         "type" : "text",
@@ -287,7 +260,7 @@
         }
       },
       "sku" : {
-        "type" : "long"
+        "type" : "keyword"
       },
       "startDate" : {
         "type" : "date"
@@ -302,7 +275,7 @@
         }
       },
       "subclassId" : {
-        "type" : "integer"
+        "type" : "keyword"
       },
       "type" : {
         "type" : "text",
@@ -314,13 +287,7 @@
         }
       },
       "url" : {
-        "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "type" : "keyword"
       },
       "weight" : {
         "type" : "text",
