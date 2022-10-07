@@ -38,13 +38,7 @@
         }
       },
       "digital" : {
-        "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "type" : "boolean"
       },
       "image" : {
         "type" : "text",
