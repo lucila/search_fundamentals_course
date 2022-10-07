@@ -12,6 +12,7 @@ import logging
 from time import perf_counter
 import concurrent.futures
 
+import time
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ mappings =  [
 def create_index(index_name):
     client = get_opensearch()
     try:
-        print(client.cat.count("search_fun_test", params={"v": "true"}))
+        print(client.cat.count(index_name, params={"v": "true"}))
         print(f"index already exists {index_name}. return!")
         return
     except:
@@ -123,6 +124,7 @@ def get_opensearch():
 
 
 def index_file(file, index_name):
+    create_index(index_name)
     docs_indexed = 0
     client = get_opensearch()
     #count before the indexing:
@@ -132,6 +134,7 @@ def index_file(file, index_name):
     root = tree.getroot()
     children = root.findall("./product")
     docs = []
+    i = 0
     for child in children:
         doc = {}
         for idx in range(0, len(mappings), 2):
@@ -142,19 +145,43 @@ def index_file(file, index_name):
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-        doc['id'] = doc['sku']
-        #docs.append(doc)
+        #doc['id'] = doc['sku']
+        doc['_index'] = index_name
+        docs.append(doc)
+        i += 1
+        if (i % 20) == 0:
+            bulk_response = bulk(client, docs)
+            print(bulk_response)
+            docs_indexed += bulk_response[0]
+            print(f"indexed items count: {bulk_response[0]}")
+            docs = []
         
-        response = client.index(
-            index=index_name,
-            body=doc,
-            id=doc['sku'],
-            refresh=True
-        )
+        #index just one: 
+        #response = client.index(
+        #    index=index_name,
+        #    body=doc,
+        #    id=doc['sku'],
+        #    refresh=True
+        #)
 
-        #count before the indexing:
-        print(client.cat.count(index_name, params={"v": "true"}))
+    #index remaining docs
+    bulk_response = bulk(client, docs)
+    print(bulk_response)
+    docs_indexed += bulk_response[0]
+    print(f"indexed items count: {bulk_response[0]}")
+    
+    #count after the indexing:
+    print(f"==== TOTAL INDEXED DOCS: {docs_indexed} ")
+    time.sleep(0.5)
+    print('drums...')
+    time.sleep(0.5)
+    print("===== TOTAL DOCS IN THE INDEX:")
+    print(client.cat.count(index_name, params={"v": "true"}))
     return docs_indexed
+
+def index_one_file():
+    index_file('/workspace/datasets/product_data/products/products_0256_9999184200050033_to_9999186400050044.xml', 'bbuy_products')
+    return
 
 @click.command()
 @click.option('--source_dir', '-s', help='XML files source directory')
