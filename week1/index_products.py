@@ -82,6 +82,8 @@ mappings =  [
         ]
 
 def create_index(index_name):
+    #do nothing now.
+    return
     client = get_opensearch()
     try:
         print(client.cat.count(index_name, params={"v": "true"}))
@@ -145,7 +147,8 @@ def index_file(file, index_name):
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-        #doc['id'] = doc['sku']
+        # Let's use sku instead of productId which is "0" for so many products.
+        doc['id'] = doc['sku']
         doc['_index'] = index_name
         docs.append(doc)
         i += 1
