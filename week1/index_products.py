@@ -149,7 +149,7 @@ def index_file(file, index_name):
         doc['_index'] = index_name
         docs.append(doc)
         i += 1
-        if (i % 20) == 0:
+        if (i % 2000) == 0:
             bulk_response = bulk(client, docs)
             print(bulk_response)
             docs_indexed += bulk_response[0]
