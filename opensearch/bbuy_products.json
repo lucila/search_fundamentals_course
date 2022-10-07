@@ -5,13 +5,7 @@
   "mappings" : {
     "properties" : {
       "active" : {
-        "type" : "text",
-        "fields" : {
-          "keyword" : {
-            "type" : "keyword",
-            "ignore_above" : 256
-          }
-        }
+        "type" : "boolean"
       },
       "categoryLeaf" : {
         "type" : "text",
