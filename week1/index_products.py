@@ -82,8 +82,6 @@ mappings =  [
         ]
 
 def create_index(index_name):
-    #do nothing now.
-    return
     client = get_opensearch()
     try:
         print(client.cat.count(index_name, params={"v": "true"}))
@@ -126,17 +124,17 @@ def get_opensearch():
 
 
 def index_file(file, index_name):
-    create_index(index_name)
+    #create_index(index_name)
     docs_indexed = 0
     client = get_opensearch()
     #count before the indexing:
-    print(client.cat.count(index_name, params={"v": "true"}))
+    #print(client.cat.count(index_name, params={"v": "true"}))
     logger.info(f'Processing file : {file}')
     tree = etree.parse(file)
     root = tree.getroot()
     children = root.findall("./product")
     docs = []
-    i = 0
+
     for child in children:
         doc = {}
         for idx in range(0, len(mappings), 2):
@@ -151,12 +149,10 @@ def index_file(file, index_name):
         doc['id'] = doc['sku']
         doc['_index'] = index_name
         docs.append(doc)
-        i += 1
-        if (i % 2000) == 0:
+        docs_indexed += 1
+        if (docs_indexed % 2000) == 0:
             bulk_response = bulk(client, docs)
-            print(bulk_response)
-            docs_indexed += bulk_response[0]
-            print(f"indexed items count: {bulk_response[0]}")
+            # TODO: check if bulk_response[0] is less than 2000. That means that some elements were not indexed
             docs = []
         
         #index just one: 
@@ -169,17 +165,12 @@ def index_file(file, index_name):
 
     #index remaining docs
     bulk_response = bulk(client, docs)
-    print(bulk_response)
-    docs_indexed += bulk_response[0]
-    print(f"indexed items count: {bulk_response[0]}")
     
     #count after the indexing:
-    print(f"==== TOTAL INDEXED DOCS: {docs_indexed} ")
-    time.sleep(0.5)
-    print('drums...')
-    time.sleep(0.5)
-    print("===== TOTAL DOCS IN THE INDEX:")
-    print(client.cat.count(index_name, params={"v": "true"}))
+    #print("===== TOTAL DOCS IN THE INDEX:")
+    #print(client.cat.count(index_name, params={"v": "true"}))
+
+    logger.info(f'Indexed {docs_indexed} docs from file : {file}')
     return docs_indexed
 
 def index_one_file():
