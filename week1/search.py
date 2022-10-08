@@ -68,6 +68,7 @@ def query():
     filters = None
     sort = "_score"
     sortDir = "desc"
+    fromElement = 0
     if request.method == 'POST':  # a query has been submitted
         user_query = request.form['query']
         if not user_query:
@@ -78,12 +79,20 @@ def query():
         sortDir = request.form["sortDir"]
         if not sortDir:
             sortDir = "desc"
-        query_obj = create_query(user_query, [], sort, sortDir)
+        fromElement = request.form['fromElement']    
+        if not fromElement:
+            fromElement = 0
+        elif int(fromElement) < 0:
+            fromElement = 0
+        else:
+            fromElement = int(fromElement)
+        query_obj = create_query(user_query, [], sort, sortDir, fromElement)
     elif request.method == 'GET':  # Handle the case where there is no query or just loading the page
         user_query = request.args.get("query", "*")
         filters_input = request.args.getlist("filter.name")
         sort = request.args.get("sort", sort)
         sortDir = request.args.get("sortDir", sortDir)
+        fromElement = request.args.get("fromElement", fromElement)
         if filters_input:
             (filters, display_filters, applied_filters) = process_filters(filters_input)
 
@@ -106,12 +115,12 @@ def query():
     if error is None:
         return render_template("search_results.jinja2", query=user_query, search_response=response,
                                display_filters=display_filters, applied_filters=applied_filters,
-                               sort=sort, sortDir=sortDir)
+                               sort=sort, sortDir=sortDir, fromElement=fromElement)
     else:
         redirect(url_for("index"))
 
 
-def create_query(user_query, filters, sort="_score", sortDir="desc"):
+def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement=0):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
     ### Step 4.b.i is done here
 
@@ -129,13 +138,14 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
           
     query_obj = {
         'size': 10,
-        "from": 0, #TODO: paginate
+        "from": fromElement * 10, # page * 10 elements 
         "query": {
             "bool": {
-            "must": inner_query,
-            "filter": filters
+                "must": inner_query,
+                "filter": filters
             }
         },
+        "sort": [{sort: {"order": sortDir}}],
         "highlight": {
             "fields": {
                 "name": { "type": "plain" },

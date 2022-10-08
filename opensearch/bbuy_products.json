@@ -180,7 +180,12 @@
       },
       "longDescription" : {
         "type" : "text",
-        "analyzer": "english"
+        "analyzer": "english",
+        "fields": {
+          "keyword": { 
+            "type": "keyword"
+          }
+        }
       },
       "longDescriptionHtml" : {
         "type" : "text",
@@ -199,7 +204,12 @@
       },
       "name" : {
         "type" : "text",
-        "analyzer": "english"
+        "analyzer": "english",
+        "fields": {
+          "keyword": { 
+            "type": "keyword"
+          }
+        }
       },
       "onSale" : {
         "type" : "boolean"

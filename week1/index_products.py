@@ -146,7 +146,7 @@ def index_file(file, index_name):
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
         # Let's use sku instead of productId which is "0" for so many products.
-        doc['id'] = doc['sku']
+        doc['_id'] = doc['sku']
         doc['_index'] = index_name
         docs.append(doc)
         docs_indexed += 1

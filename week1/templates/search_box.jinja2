@@ -3,6 +3,7 @@
     <div class="sm:flex">
     <input class="flex-grow w-full sm:w-auto" name="query" id="query" type="search" value="{{ query|e }}" required>
     <input type="submit" value="Query" class="hidden">
+    <input name="fromElement" id="fromElement" type="number" value="{{from_element}}>
     <div class="sm:ml-2 pt-2 sm:pt-0">
       <select name="sort" id="sortControl">
         <option value="_score" {% if sort == "_score" %}selected{% endif %} >Relevance</option>
