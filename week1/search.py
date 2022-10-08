@@ -136,6 +136,13 @@ def create_query(user_query, filters, sort="_score", sortDir="desc"):
             "filter": filters
             }
         },
+        "highlight": {
+            "fields": {
+                "name": { "type": "plain" },
+                "shortDescription": { "type": "plain"},
+                "longDescription": { "type": "plain"}
+            }
+        },
         "aggs": {
             #### Step 4.b.i: create the appropriate query and aggregations here
             "regularPrice": {
