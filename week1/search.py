@@ -128,11 +128,10 @@ def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement
         inner_query =  {"match_all": {}}
     else:
         inner_query = {
-            "multi_match": {
+            "query_string": {
                 "query" : user_query,
-                "type": "phrase",
-                "slop": 3,
-                "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"]
+                "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],
+                "phrase_slop": 3
             }
         }
           
@@ -159,18 +158,26 @@ def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement
                 "range":{
                     "field": "regularPrice",
                     "ranges": [
-                        { "key": "$", "to": 20},
-                        { "key": "$$", "from": 20, "to": 50},
-                        { "key": "$$$", "from": 50, "to": 100  },
-                        { "key": "$$$$", "from": 100, "to": 500 },
-                        { "key": "$$$$$", "from": 500, "to": 2000 },
-                        { "key": "$$$$$$", "from": 2000 }
+                        { "key": "$", "to": 99},
+                        { "key": "$$", "from": 99, "to": 200},
+                        { "key": "$$$", "from": 200, "to": 300  },
+                        { "key": "$$$$", "from": 300, "to": 400 },
+                        { "key": "$$$$$", "from": 400, "to": 500 },
+                        { "key": "$$$$$$", "from": 500 }
                     ]
                 }
             },
             "department": {
                 "terms":{
                     "field": "department.keyword"
+                }
+            },
+            "manufacturer": {
+                "terms":{
+                    "field": "manufacturer.keyword",
+                    "size": 10,
+                    "min_doc_count": 0,
+                    "exclude": "UNKNOWN|Unknown"
                 }
             },
             "missing_images": {
