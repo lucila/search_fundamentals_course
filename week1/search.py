@@ -130,7 +130,7 @@ def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement
         inner_query = {
             "query_string": {
                 "query" : user_query,
-                "fields": ["name^100", "shortDescription^50", "longDescription^10", "department"],
+                "fields": ["name^100", "shortDescription^50", "longDescription^10", "manufacturer^2", "department"],
                 "phrase_slop": 3
             }
         }
@@ -139,9 +139,38 @@ def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement
         'size': 10,
         "from": fromElement * 10, # page * 10 elements 
         "query": {
-            "bool": {
-                "must": inner_query,
-                "filter": filters
+            "function_score": {
+                "query" : {
+                    "bool": {
+                        "must": inner_query,
+                        "filter": filters
+                    }
+                },
+                "boost_mode": "replace",
+                "score_mode": "avg",
+                "functions": [
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankShortTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankMediumTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankLongTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    }
+                ]
             }
         },
         "sort": [{sort: {"order": sortDir}}],
