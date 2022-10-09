@@ -12,6 +12,7 @@ import logging
 from time import perf_counter
 import concurrent.futures
 
+import time
 
 
 logger = logging.getLogger(__name__)
@@ -80,37 +81,99 @@ mappings =  [
 
         ]
 
+def create_index(index_name):
+    client = get_opensearch()
+    try:
+        print(client.cat.count(index_name, params={"v": "true"}))
+        print(f"index already exists {index_name}. return!")
+        return
+    except:
+        print("creating index: " + index_name)
+        index_body = {
+            'settings': {
+                'index': {
+                    'query':{
+                        'default_field': "body"
+                    }
+                }
+            }
+        }
+        response = client.indices.create(index_name, body=index_body)
+        print('\nCreating index:')
+        print(response)
+
 def get_opensearch():
     host = 'localhost'
     port = 9200
     auth = ('admin', 'admin')
     #### Step 2.a: Create a connection to OpenSearch
-    client = None
+    #### DONE!
+    # Create the client with SSL/TLS enabled, but hostname and certificate verification disabled.
+    client = OpenSearch(
+        hosts=[{'host': host, 'port': port}],
+        http_compress=True,  # enables gzip compression for request bodies
+        http_auth=auth,
+        # client_cert = client_cert_path,
+        # client_key = client_key_path,
+        use_ssl=True,
+        verify_certs=False,
+        ssl_assert_hostname=False,
+        ssl_show_warn=False,
+    )
     return client
 
 
 def index_file(file, index_name):
+    #create_index(index_name)
     docs_indexed = 0
     client = get_opensearch()
+    #count before the indexing:
+    #print(client.cat.count(index_name, params={"v": "true"}))
     logger.info(f'Processing file : {file}')
     tree = etree.parse(file)
     root = tree.getroot()
     children = root.findall("./product")
     docs = []
+
     for child in children:
         doc = {}
         for idx in range(0, len(mappings), 2):
             xpath_expr = mappings[idx]
             key = mappings[idx + 1]
             doc[key] = child.xpath(xpath_expr)
-        #print(doc)
+        
         if 'productId' not in doc or len(doc['productId']) == 0:
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
-        the_doc = None
-        docs.append(the_doc)
+        # Let's use sku instead of productId which is "0" for so many products.
+        if len(doc['sku'][0]) == 0:
+            doc['sku'][0] = 0
+        doc['_id'] = doc['sku'][0]
+        doc['_index'] = index_name
+        docs.append(doc)
+        docs_indexed += 1
+        if (docs_indexed % 2000) == 0:
+            try:
+                bulk_response = bulk(client, docs)
+            except Exception as e:
+                logger.error(f"exception while processing file {file}.")
+                print(e)
+            # TODO: check if bulk_response[0] is less than 2000. That means that some elements were not indexed
+            docs = []
+        
+    #index remaining docs
+    try:
+        bulk_response = bulk(client, docs)
+    except Exception as e:
+        logger.error(f"exception while processing file {file}.")
+        print(e)
 
+    logger.info(f'Indexed {docs_indexed} docs from file : {file}')
     return docs_indexed
+
+def index_one_file():
+    index_file('/workspace/datasets/product_data/products/products_0256_9999184200050033_to_9999186400050044.xml', 'bbuy_products')
+    return
 
 @click.command()
 @click.option('--source_dir', '-s', help='XML files source directory')

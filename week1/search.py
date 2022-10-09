@@ -68,6 +68,7 @@ def query():
     filters = None
     sort = "_score"
     sortDir = "desc"
+    fromElement = 0
     if request.method == 'POST':  # a query has been submitted
         user_query = request.form['query']
         if not user_query:
@@ -78,12 +79,20 @@ def query():
         sortDir = request.form["sortDir"]
         if not sortDir:
             sortDir = "desc"
-        query_obj = create_query(user_query, [], sort, sortDir)
+        fromElement = request.form['fromElement']    
+        if not fromElement:
+            fromElement = 0
+        elif int(fromElement) < 0:
+            fromElement = 0
+        else:
+            fromElement = int(fromElement)
+        query_obj = create_query(user_query, [], sort, sortDir, fromElement)
     elif request.method == 'GET':  # Handle the case where there is no query or just loading the page
         user_query = request.args.get("query", "*")
         filters_input = request.args.getlist("filter.name")
         sort = request.args.get("sort", sort)
         sortDir = request.args.get("sortDir", sortDir)
+        fromElement = request.args.get("fromElement", fromElement)
         if filters_input:
             (filters, display_filters, applied_filters) = process_filters(filters_input)
 
@@ -94,28 +103,127 @@ def query():
     print("query obj: {}".format(query_obj))
 
     #### Step 4.b.ii
-    response = None   # TODO: Replace me with an appropriate call to OpenSearch
+    # DONE
+    try:
+        response = opensearch.search(body=query_obj, index='bbuy_products')   
+    except Exception as e: # opensearchpy.exceptions.RequestError as ex:
+        print("catch exception")
+        print(e)
+        error = True
     # Postprocess results here if you so desire
 
-    #print(response)
     if error is None:
         return render_template("search_results.jinja2", query=user_query, search_response=response,
                                display_filters=display_filters, applied_filters=applied_filters,
-                               sort=sort, sortDir=sortDir)
+                               sort=sort, sortDir=sortDir, fromElement=fromElement)
     else:
         redirect(url_for("index"))
 
 
-def create_query(user_query, filters, sort="_score", sortDir="desc"):
+def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement=0):
     print("Query: {} Filters: {} Sort: {}".format(user_query, filters, sort))
+    ### Step 4.b.i is done here
+
+    if user_query == '*':
+        inner_query =  {"match_all": {}}
+    else:
+        inner_query = {
+            "query_string": {
+                "query" : user_query,
+                "fields": ["name^100", "shortDescription^50", "longDescription^10", "manufacturer^2", "department"],
+                "phrase_slop": 3
+            }
+        }
+          
     query_obj = {
         'size': 10,
+        "from": fromElement * 10, # page * 10 elements 
         "query": {
-            "match_all": {} # Replace me with a query that both searches and filters
+            "function_score": {
+                "query" : {
+                    "bool": {
+                        "must": inner_query,
+                        "filter": filters
+                    }
+                },
+                "boost_mode": "replace",
+                "score_mode": "avg",
+                "functions": [
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankShortTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankMediumTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "salesRankLongTerm",
+                            "modifier": "reciprocal",
+                            "missing": 100000000
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "customerReviewCount", 
+                            "modifier": "ln1p", "missing": 0
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "customerReviewAverage", 
+                            "modifier": "ln1p", "missing": 0
+                        }
+                    },
+                ]
+            }
+        },
+        "sort": [{sort: {"order": sortDir}}],
+        "highlight": {
+            "fields": {
+                "name": { "type": "plain" },
+                "shortDescription": { "type": "plain"},
+                "longDescription": { "type": "plain"}
+            }
         },
         "aggs": {
             #### Step 4.b.i: create the appropriate query and aggregations here
-
+            "regularPrice": {
+                "range":{
+                    "field": "regularPrice",
+                    "ranges": [
+                        { "key": "$", "to": 99},
+                        { "key": "$$", "from": 99, "to": 200},
+                        { "key": "$$$", "from": 200, "to": 300  },
+                        { "key": "$$$$", "from": 300, "to": 400 },
+                        { "key": "$$$$$", "from": 400, "to": 500 },
+                        { "key": "$$$$$$", "from": 500 }
+                    ]
+                }
+            },
+            "department": {
+                "terms":{
+                    "field": "department.keyword"
+                }
+            },
+            "manufacturer": {
+                "terms":{
+                    "field": "manufacturer.keyword",
+                    "size": 10,
+                    "min_doc_count": 0,
+                    "exclude": "UNKNOWN|Unknown"
+                }
+            },
+            "missing_images": {
+                "missing":{"field": "image.keyword"}
+            }
         }
     }
     return query_obj

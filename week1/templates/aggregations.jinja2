@@ -47,6 +47,29 @@
       {% endfor %}
     {% endif %}
   </div>
+  <div class="aggregations-result">
+    <div class="agg-header uppercase text-slate-600 pt-8 pb-2 text-sm">Manufacturer</div>
+    {% if "filter.name=manufacturer" not in applied_filters %}
+      {% for agg in search_response.aggregations.manufacturer.buckets | sort(attribute='doc_count', reverse = True)  %}
+        {% if agg.doc_count > 1 %}
+          <div class="aggregation">
+            <div><a class="text-blue-500 flex"
+                href="{{ url_for("search.query") }}?&query={{ query|e }}{{ applied_filters }}&filter.name=manufacturer.keyword&manufacturer.keyword.type=terms&manufacturer.keyword.key={{ agg.key }}">
+                <div class="flex-grow truncate">{{ agg.key }}</div> <span class="text-slate-500">{{ "{:,}".format(agg.doc_count) }}</span>
+              </a>
+            </div>
+          </div>{% endif %}
+      {% endfor %}
+    {% else %}
+      {# We've already applied it, just display it #}
+      {% for agg in search_response.aggregations.manufacturer.buckets %}
+        {% if agg.doc_count > 0 %}
+          <div class="aggregation">
+            <div>{{ agg.key }}: {{ agg.doc_count }}</div>
+          </div>{% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
   {% if search_response.aggregations.missing_images %}
   <div class="aggregations-result">
     <div class="agg-header">Missing Data</div>
