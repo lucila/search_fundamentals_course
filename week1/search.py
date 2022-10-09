@@ -169,7 +169,19 @@ def create_query(user_query, filters, sort="_score", sortDir="desc", fromElement
                             "modifier": "reciprocal",
                             "missing": 100000000
                         }
-                    }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "customerReviewCount", 
+                            "modifier": "ln1p", "missing": 0
+                        }
+                    },
+                    {
+                        "field_value_factor": {
+                            "field": "customerReviewAverage", 
+                            "modifier": "ln1p", "missing": 0
+                        }
+                    },
                 ]
             }
         },

@@ -146,17 +146,27 @@ def index_file(file, index_name):
             continue
         #### Step 2.b: Create a valid OpenSearch Doc and bulk index 2000 docs at a time
         # Let's use sku instead of productId which is "0" for so many products.
-        doc['id'] = doc['sku']
+        if len(doc['sku'][0]) == 0:
+            doc['sku'][0] = 0
+        doc['_id'] = doc['sku'][0]
         doc['_index'] = index_name
         docs.append(doc)
         docs_indexed += 1
         if (docs_indexed % 2000) == 0:
-            bulk_response = bulk(client, docs)
+            try:
+                bulk_response = bulk(client, docs)
+            except Exception as e:
+                logger.error(f"exception while processing file {file}.")
+                print(e)
             # TODO: check if bulk_response[0] is less than 2000. That means that some elements were not indexed
             docs = []
         
     #index remaining docs
-    bulk_response = bulk(client, docs)
+    try:
+        bulk_response = bulk(client, docs)
+    except Exception as e:
+        logger.error(f"exception while processing file {file}.")
+        print(e)
 
     logger.info(f'Indexed {docs_indexed} docs from file : {file}')
     return docs_indexed
